@@ -1,10 +1,9 @@
-package com.github.ivanocortesini.log4j.elastic.utils;
+package com.mulesoft.services.elk.utils;
 
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.ivanocortesini.log4j.elastic.appender.Logged;
+import com.mulesoft.services.elk.appender.Logged;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.appender.AppenderLoggingException;
@@ -22,22 +21,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 
-public class DocUtils {
+public class Utils {
 	private static final Logger LOGGER = StatusLogger.getLogger();
 
 	private static ObjectMapper mapper = new ObjectMapper()
 			.setSerializationInclusion(JsonInclude.Include.NON_NULL)
 			.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZZ"));
 
-	//Cached mapping between parameters object class and field name declared by @Logged annotation
-	private static final ConcurrentHashMap<Class, String> fieldByEntity = new ConcurrentHashMap<>();
-
-
-	public static XContentBuilder docBuilder(LogEvent logEvent, Map<String,String> mdc, boolean includeLocation, boolean ignoreExceptions) throws IOException {
+	public static XContentBuilder docBuilder(LogEvent logEvent, Map<String,String> threadContext) throws IOException {
 		XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
 		Message message = logEvent.getMessage();
 
-		//@Logged parameters
 		Object[] parameters = message.getParameters();
 		if (parameters!=null)
 			Arrays.stream(parameters)
@@ -48,15 +42,12 @@ public class DocUtils {
 						try {
 							builder.rawField(e.getKey(), new ByteArrayInputStream(mapper.writeValueAsString(e.getValue()).getBytes()), XContentType.JSON);
 						} catch (Exception ex) {
-							LOGGER.error("Error logging into Elasticsearch for logger '"+logEvent.getLoggerName()+"' converting parameter '"+e.getKey()+"'",ex);
-							if (!ignoreExceptions)
-								throw new AppenderLoggingException(ex);
+							LOGGER.error("Error converting parameter '"+ e.getKey() +"'",ex);
 						}
 					});
 
-		//MDC parameters
-		if (mdc!=null)
-			for (Map.Entry<String, String> e : mdc.entrySet())
+		if (threadContext!=null)
+			for (Map.Entry<String, String> e : threadContext.entrySet())
 				builder.field(e.getKey(), e.getValue());
 
 		//Standard message fields
@@ -66,32 +57,16 @@ public class DocUtils {
 		builder.timeField("timestamp", new Date());
 		builder.field("thread", logEvent.getThreadName());
 
-		if (includeLocation) {
-			StackTraceElement stackTraceElement = logEvent.getSource();
-			builder.field("class", stackTraceElement.getClassName());
-			builder.field("method", stackTraceElement.getMethodName());
-			builder.field("line", stackTraceElement.getLineNumber());
-		}
-
 		Throwable error = message.getThrowable();
 		if (error!=null) {
 			builder.field("errorMessage", error.getLocalizedMessage());
 			builder.field("errorType", error.getClass().getName());
-			if (includeLocation) {
-				builder.field("stack", Arrays.stream(error.getStackTrace())
-								.map(ste -> Arrays.stream(new Object[][]{
-												{"class", ste.getClassName()},
-												{"method", ste.getMethodName()},
-												{"line", ste.getLineNumber()},
-												{"string", ste.toString()}
-										}).collect(Collectors.toMap(f->(String)f[0], f->f[1]))
-								).collect(Collectors.toList()) );
-			}
 		}
-
 
 		return builder.endObject();
 	}
+
+	private static final ConcurrentHashMap<Class, String> fieldByEntity = new ConcurrentHashMap<>();
 
 	private static String getFieldName(Object entity) {
 		String fieldName = fieldByEntity.get(entity.getClass());
@@ -100,10 +75,6 @@ public class DocUtils {
 			fieldByEntity.put(entity.getClass(), fieldName = loggedAnnotation!=null ? loggedAnnotation.value() : "");
 		}
 		return fieldName.length()>0 ? fieldName : null;
-	}
-
-	public static String toJson(Object obj) throws JsonProcessingException {
-		return obj!=null ? mapper.writeValueAsString(obj) : null;
 	}
 
 }

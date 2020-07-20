@@ -1,4 +1,4 @@
-package com.github.ivanocortesini.log4j.elastic.appender;
+package com.mulesoft.services.elk.appender;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

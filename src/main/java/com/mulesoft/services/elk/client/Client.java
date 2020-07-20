@@ -1,14 +1,13 @@
-package com.github.ivanocortesini.log4j.elastic.client;
+package com.mulesoft.services.elk.client;
 
 
-import com.github.ivanocortesini.log4j.elastic.config.ElasticConfig;
+import com.mulesoft.services.elk.pojos.Config;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.appender.AppenderLoggingException;
 import org.apache.logging.log4j.status.StatusLogger;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
@@ -28,12 +27,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 
-public final class ElasticClient {
+public final class Client {
     private static final Logger LOGGER = StatusLogger.getLogger();
 
-    private static final Map<String, ElasticClient> clientByLoggerName = new HashMap<>();
+    private static final Map<String, Client> clientByLoggerName = new HashMap<>();
 
-    ElasticConfig config;
+    Config config;
     RestHighLevelClient client;
 
     boolean bulkMode;
@@ -43,36 +42,38 @@ public final class ElasticClient {
 
 
     //Life cycle and configuration
-    public static ElasticClient getInstance(ElasticConfig config) throws IOException {
-        ElasticClient client = clientByLoggerName.get(config.getAppenderName());
+    public static Client getInstance(Config config) throws IOException {
+        Client client = clientByLoggerName.get(config.getName());
         if (client==null)
-            clientByLoggerName.put(config.getAppenderName(), client = new ElasticClient(config));
+            clientByLoggerName.put(config.getName(), client = new Client(config));
         return client;
     }
 
-    ElasticClient(ElasticConfig config) throws IOException {
+    Client(Config config) throws IOException {
         this.config = config;
         startup();
     }
 
     void startup() throws IOException {
-        try { shutdown(); } catch (Exception e) {}
+        try {
+            shutdown();
+        } catch (Exception e) {
 
-        HttpHost[] hosts = config.getCluster().stream()
-                .map(node -> new HttpHost(node.getHost(), node.getPort(), node.getProtocol()))
-                .toArray(s -> new HttpHost[s] );
+        }
 
-        RestClientBuilder clienBuilder = RestClient.builder(hosts);
-        basicAuthentication(clienBuilder);
+        HttpHost host = new HttpHost(config.getServer().getHost(), config.getServer().getPort(), config.getServer().getProtocol());
 
-        client = new RestHighLevelClient(clienBuilder);
+        RestClientBuilder clientBuilder = RestClient.builder(host);
+        basicAuthentication(clientBuilder);
 
-        if (!client.indices().exists(new GetIndexRequest().indices(config.getIndexName()), RequestOptions.DEFAULT))
-            client.indices().create(new CreateIndexRequest(config.getIndexName()), RequestOptions.DEFAULT);
+        client = new RestHighLevelClient(clientBuilder);
+
+        if (!client.indices().exists(new GetIndexRequest().indices(config.getIndex()), RequestOptions.DEFAULT))
+            client.indices().create(new CreateIndexRequest(config.getIndex()), RequestOptions.DEFAULT);
     }
 
     void basicAuthentication(RestClientBuilder builder) {
-        if (config.getUserName()!=null && config.getUserName().trim().length()>0 && config.getPassword()!=null && config.getPassword().trim().length()>0) {
+        if (config.getUsername()!=null && config.getUsername().trim().length()>0 && config.getPassword()!=null && config.getPassword().trim().length()>0) {
             final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
             credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials("user", "password"));
             builder.setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
@@ -93,19 +94,19 @@ public final class ElasticClient {
     //Store function implementations
     public void storeJsonDocument(String document, boolean closeBatch) throws IOException {
         storeDocument(
-                new IndexRequest(config.getIndexName(), "doc", null).source(document, XContentType.JSON),
+                new IndexRequest(config.getIndex(), "doc", null).source(document, XContentType.JSON),
                 closeBatch
         );
     }
     public void storeMapDocument(Map<String, Object> document, boolean closeBatch) throws IOException {
         storeDocument(
-                new IndexRequest(config.getIndexName(), "doc", null).source(document),
+                new IndexRequest(config.getIndex(), "doc", null).source(document),
                 closeBatch
         );
     }
     public void storeXContentDocument(XContentBuilder document, boolean closeBatch) throws IOException {
         storeDocument(
-                new IndexRequest(config.getIndexName(), "doc", null).source(document),
+                new IndexRequest(config.getIndex(), "doc", null).source(document),
                 closeBatch
         );
     }
@@ -115,8 +116,6 @@ public final class ElasticClient {
             if (bulkRequest == null) {
                 if (!bulkMode) {
                     bulkMode = true;
-                    if (config.getFlushTimeOut() > 0)
-                        startBulkFlushTimeOutChecker();
                 }
                 bulkRequest = new BulkRequest();
                 bulkRequestCreationTime = System.currentTimeMillis();
@@ -147,13 +146,11 @@ public final class ElasticClient {
         bulkFlushTimeOutCheckerExecutor.scheduleAtFixedRate(
             () -> {
                 //Timeout check based on bulk request creation time. Check is scheduled every 5 seconds
-                if (bulkRequest!=null && config.getFlushTimeOut()<(System.currentTimeMillis()-bulkRequestCreationTime)/1000)
+                if (bulkRequest!=null)
                     try {
                         sendBulkRequest();
                     } catch (IOException e) {
-                        LOGGER.error("Error logging into Elasticsearch during a bulk request execution",e);
-                        if (!config.isIgnoreExceptions())
-                            throw new AppenderLoggingException(e);
+                        LOGGER.error("Error sending log to ELK during the bulk request execution",e);
                     }
             },
             5,

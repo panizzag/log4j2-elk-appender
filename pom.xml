@@ -2,13 +2,12 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.github.ivanocortesini</groupId>
-    <artifactId>log4j-2-elastic</artifactId>
-    <version>1.0.1</version>
+    <groupId>com.mulesoft.services</groupId>
+    <artifactId>log4j2-elk-apppender</artifactId>
+    <version>1.0.0</version>
 
-    <name>log4j-2-elastic</name>
-    <description>Log4J2 Elasticsearch appender</description>
-    <url>https://github.com/ivanocortesini/log4j-2-elastic</url>
+    <name>log4j2-elk-apppender</name>
+    <description>Log4j2 ELK appender</description>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
@@ -16,11 +15,8 @@
         <log4j.version>2.11.1</log4j.version>
         <disruptor.version>3.4.2</disruptor.version>
         <jackson.version>2.8.11.3</jackson.version>
-        <lombok.version>1.18.10</lombok.version>
         <elastic.version>7.3.2</elastic.version>
-        <junit.version>5.4.0</junit.version>
     </properties>
-<!-- 2.9.8 -->
     <build>
         <plugins>
             <plugin>
@@ -32,26 +28,16 @@
     </build>
 
     <dependencies>
-        
-        <!-- Elasticsearch client -->
         <dependency>
             <groupId>org.elasticsearch.client</groupId>
             <artifactId>elasticsearch-rest-high-level-client</artifactId>
             <version>${elastic.version}</version>
         </dependency>
-        <!-- Jackson utils support -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>${jackson.version}</version>
         </dependency>
-        <!-- Data utils -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>${lombok.version}</version>
-        </dependency>
-       <!-- Log4J 2 -->
        <dependency>
            <groupId>org.apache.logging.log4j</groupId>
            <artifactId>log4j-api</artifactId>
@@ -67,142 +53,5 @@
            <artifactId>disruptor</artifactId>
            <version>${disruptor.version}</version>
        </dependency>
-
-        <!-- Testing -->
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <version>RELEASE</version>
-            <scope>test</scope>
-        </dependency>
-
     </dependencies>
-
-
-    <!-- Distribution -->
-    <licenses>
-        <license>
-            <name>Apache License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
-    <scm>
-        <connection>https://github.com/ivanocortesini/log4j-2-elastic.git</connection>
-        <url>https://github.com/ivanocortesini/log4j-2-elastic</url>
-    </scm>
-    <distributionManagement>
-        <site>
-            <id>api.readme</id>
-            <url>https://github.com/ivanocortesini/log4j-2-elastic</url>
-        </site>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
-    </distributionManagement>
-    <developers>
-        <developer>
-            <name>Ivano Cortesini</name>
-            <email>ivano.cortesini@gmail.com</email>
-            <organizationUrl>https://github.com/ivanocortesini</organizationUrl>
-        </developer>
-    </developers>
-
-
-    <!-- Release on Maven central -->
-    <profiles>
-        <!-- Activate using the release property: mvn clean install -Prelease -->
-        <profile>
-            <id>release</id>
-            <activation>
-                <property>
-                    <name>release</name>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <version>2.22.1</version>
-                        <configuration>
-                            <skipTests>true</skipTests>
-                        </configuration>
-                    </plugin>
-                    <!-- To release to Maven central -->
-                    <plugin>
-                        <groupId>org.sonatype.plugins</groupId>
-                        <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>1.6.8</version>
-                        <extensions>true</extensions>
-                        <configuration>
-                            <serverId>ossrh</serverId>
-                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
-                        </configuration>
-                    </plugin>
-                    <!-- To generate javadoc -->
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-source-plugin</artifactId>
-                        <version>3.0.1</version>
-                        <executions>
-                            <execution>
-                                <id>attach-sources</id>
-                                <goals>
-                                    <goal>jar-no-fork</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>2.10.4</version>
-                        <executions>
-                            <execution>
-                                <id>attach-javadocs</id>
-                                <goals>
-                                    <goal>jar</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <!-- To sign the artifacts -->
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-gpg-plugin</artifactId>
-                        <version>1.6</version>
-                        <executions>
-                            <execution>
-                                <id>sign-artifacts</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>sign</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
-
 </project>
