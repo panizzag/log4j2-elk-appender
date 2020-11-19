@@ -1,0 +1,6 @@
+/Users/gpanizza/log4j2-plugins/log4j2-elk/src/main/java/com/mulesoft/services/elk/appender/Appender.java
+/Users/gpanizza/log4j2-plugins/log4j2-elk/src/main/java/com/mulesoft/services/elk/appender/Logged.java
+/Users/gpanizza/log4j2-plugins/log4j2-elk/src/main/java/com/mulesoft/services/elk/pojos/Config.java
+/Users/gpanizza/log4j2-plugins/log4j2-elk/src/main/java/com/mulesoft/services/elk/pojos/Host.java
+/Users/gpanizza/log4j2-plugins/log4j2-elk/src/main/java/com/mulesoft/services/elk/utils/Utils.java
+/Users/gpanizza/log4j2-plugins/log4j2-elk/src/main/java/com/mulesoft/services/elk/client/Client.java

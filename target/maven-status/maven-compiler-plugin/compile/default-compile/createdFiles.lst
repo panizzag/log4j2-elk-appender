@@ -1,0 +1,7 @@
+com/mulesoft/services/elk/client/Client.class
+com/mulesoft/services/elk/pojos/Host.class
+com/mulesoft/services/elk/utils/Utils.class
+META-INF/org/apache/logging/log4j/core/config/plugins/Log4j2Plugins.dat
+com/mulesoft/services/elk/appender/Logged.class
+com/mulesoft/services/elk/appender/Appender.class
+com/mulesoft/services/elk/pojos/Config.class
